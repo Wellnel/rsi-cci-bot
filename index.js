@@ -40,23 +40,26 @@ let latestSignalData = {
 // =========================================================================
 function isMarketOpen() {
   const now = new Date();
-  // Tukar waktu ke Timezone Malaysia/Asia/Kuala_Lumpur
-  const mytTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kuala_Lumpur" }));
-  const day = mytTime.getDay(); // 0 = Ahad, 1 = Isnin, ..., 6 = Sabtu
+  // Paksa tukar waktu ke Timezone Malaysia/Asia/Kuala_Lumpur
+  const mytString = now.toLocaleString("en-US", { timeZone: "Asia/Kuala_Lumpur" });
+  const mytTime = new Date(mytString);
+  
+  const day = mytTime.getDay();   // 0 = Ahad, 1 = Isnin, ..., 5 = Jumaat, 6 = Sabtu
   const hours = mytTime.getHours();
 
-  // Pasaran Forex/Gold tutup pada hari Sabtu & Ahad
-  if (day === 6) return false; // Sabtu (Tutup penuh)
-  if (day === 0) return false; // Ahad (Tutup penuh)
+  // 1. Ahad - Pasaran TUTUP sepenuhnya
+  if (day === 0) return false;
 
-  // Isnin awal pagi (sebelum 6.00 AM MYT) biasanya pasaran belum aktif
-  if (day === 1 && hours < 6) return false;
-
-  // Jumaat malam/Sabtu awal pagi (selepas 5.00 AM MYT Sabtu) pasaran dah tutup
-  if (day === 5 && hours >= 23) {
-    // Menghampiri penutupan Jumaat malam
+  // 2. Sabtu - Pasaran HANYA tutup SELEPAS jam 6.00 AM MYT
+  if (day === 6) {
+    if (hours >= 6) return false; // Tutup bermula 6:00 AM Sabtu sehingga Ahad
+    return true;                  // Sabtu 12:00 AM - 5:59 AM masih BUKA
   }
 
+  // 3. Isnin - Pasaran BUKA bermula jam 6.00 AM MYT
+  if (day === 1 && hours < 6) return false;
+
+  // 4. Selasa hingga Jumaat - Pasaran BUKA 24 jam
   return true;
 }
 
