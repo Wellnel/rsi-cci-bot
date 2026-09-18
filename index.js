@@ -10,9 +10,9 @@ const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const PORT = process.env.PORT || 3000;
 
-// Tetapan Parameter Baharu
+// Tetapan Parameter
 const SYMBOL = 'XAU/USD';
-const INTERVAL = '30min'; // Timeframe 30min
+const INTERVAL = '30min'; // Timeframe H1
 const RSI_PERIOD = 24;
 const CCI_PERIOD = 24;
 
@@ -36,6 +36,31 @@ let latestSignalData = {
 };
 
 // =========================================================================
+// FUNKSI SEMAKAN PASARAN (MARKET HOURS)
+// =========================================================================
+function isMarketOpen() {
+  const now = new Date();
+  // Tukar waktu ke Timezone Malaysia/Asia/Kuala_Lumpur
+  const mytTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kuala_Lumpur" }));
+  const day = mytTime.getDay(); // 0 = Ahad, 1 = Isnin, ..., 6 = Sabtu
+  const hours = mytTime.getHours();
+
+  // Pasaran Forex/Gold tutup pada hari Sabtu & Ahad
+  if (day === 6) return false; // Sabtu (Tutup penuh)
+  if (day === 0) return false; // Ahad (Tutup penuh)
+
+  // Isnin awal pagi (sebelum 6.00 AM MYT) biasanya pasaran belum aktif
+  if (day === 1 && hours < 6) return false;
+
+  // Jumaat malam/Sabtu awal pagi (selepas 5.00 AM MYT Sabtu) pasaran dah tutup
+  if (day === 5 && hours >= 23) {
+    // Menghampiri penutupan Jumaat malam
+  }
+
+  return true;
+}
+
+// =========================================================================
 // STARTUP TELEGRAM ALERT
 // =========================================================================
 function sendStartupAlert() {
@@ -43,7 +68,7 @@ function sendStartupAlert() {
                      `📌 *Symbol:* ${SYMBOL}\n` +
                      `⏱️ *Timeframe:* ${INTERVAL}\n` +
                      `📈 *Indicator:* RSI (${RSI_PERIOD}) + CCI (${CCI_PERIOD})\n` +
-                     `🟢 *Status:* Aktif & Memantau Pasaran...`;
+                     `🟢 *Status:* System Active with Auto Market-Sleep`;
 
   bot.sendMessage(CHAT_ID, startupMsg, { parse_mode: 'Markdown' })
     .then(() => console.log('✅ Telegram startup alert berjaya dihantar.'))
@@ -75,6 +100,14 @@ async function getCandles() {
 }
 
 async function checkSignal() {
+  // Semak jika pasaran tutup
+  if (!isMarketOpen()) {
+    console.log(`😴 [MARKET CLOSED] Pasaran sedang berehat (Hujung Minggu). Semakan diabaikan.`);
+    latestSignalData.signal = 'MARKET CLOSED';
+    latestSignalData.updatedAt = new Date().toLocaleTimeString();
+    return;
+  }
+
   try {
     const candles = await getCandles();
     if (candles.length < Math.max(RSI_PERIOD, CCI_PERIOD) + 10) {
@@ -97,7 +130,6 @@ async function checkSignal() {
       close: closes
     });
 
-    // Ambil data candle dan indicator paling terkini (lilin semasa / candle terkini)
     const currCandle = candles[candles.length - 1];
     const currRSI = rsiValues[rsiValues.length - 1];
     const currCCI = cciValues[cciValues.length - 1];
@@ -105,8 +137,6 @@ async function checkSignal() {
     let signal = 'WAITING';
 
     // Syarat Signal
-    // BUY  : RSI > 50  DAN  CCI > +100
-    // SELL : RSI < 50  DAN  CCI < -100
     if (currRSI > 50 && currCCI > 100) {
       signal = 'BUY';
     } else if (currRSI < 50 && currCCI < -100) {
@@ -149,6 +179,6 @@ app.listen(PORT, () => {
   console.log(`🌐 Dashboard sedia di http://localhost:${PORT}`);
   sendStartupAlert();
   checkSignal();
-  // Semakan dibuat setiap 1 jam sekali mengikut timeframe H1 (3600000 ms)
-  setInterval(checkSignal, 60 * 60 * 1000);
+  // Semakan dibuat setiap 30 minit sekali (1800000 ms)
+  setInterval(checkSignal, 30 * 60 * 1000);
 });
