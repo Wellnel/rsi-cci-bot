@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MATRIX PRO TRADER - Signal Dashboard & Live Chart</title>
+  <style>
+    :root {
+      --bg-color: #0d0f12;
+      --card-bg: #161920;
+      --accent-green: #00ff66;
+      --accent-red: #ff3366;
+      --accent-blue: #00e5ff;
+      --text-main: #e0e6ed;
+      --text-dim: #7a8b9e;
+      --border-color: #262c36;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .main-container {
+      width: 100%;
+      max-width: 1000px;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 850px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .dashboard {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--accent-blue);
+    }
+
+    .live-tag {
+      font-size: 0.75rem;
+      background: rgba(0, 229, 255, 0.1);
+      color: var(--accent-blue);
+      padding: 4px 8px;
+      border-radius: 20px;
+      border: 1px solid var(--accent-blue);
+      animation: pulse 2s infinite;
+    }
+
+    .signal-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .signal-box.BUY {
+      border-color: var(--accent-green);
+      background: rgba(0, 255, 102, 0.05);
+      box-shadow: 0 0 15px rgba(0, 255, 102, 0.2);
+    }
+
+    .signal-box.SELL {
+      border-color: var(--accent-red);
+      background: rgba(255, 51, 102, 0.05);
+      box-shadow: 0 0 15px rgba(255, 51, 102, 0.2);
+    }
+
+    .signal-title {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .signal-status {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+    }
+
+    .signal-status.BUY { color: var(--accent-green); }
+    .signal-status.SELL { color: var(--accent-red); }
+    .signal-status.WAITING { color: var(--text-dim); }
+
+    .price-display {
+      font-size: 1.1rem;
+      margin-top: 8px;
+      font-weight: 600;
+    }
+
+    .grid-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .copy-btn {
+      width: 100%;
+      background: var(--accent-blue);
+      color: #000;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.2s ease;
+    }
+
+    .copy-btn:hover {
+      opacity: 0.9;
+    }
+
+    .footer-info {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 16px;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+
+    /* Container Carta */
+    .chart-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+      min-height: 500px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="main-container">
+    <!-- Dashboard Panel -->
+    <div class="dashboard">
+      <div>
+        <div class="header">
+          <h1>⚡ MATRIX PRO TRADER</h1>
+          <span class="live-tag">LIVE M30</span>
+        </div>
+
+        <!-- Signal Box -->
+        <div class="signal-box" id="signalBox">
+          <div class="signal-title">Signal Status</div>
+          <div class="signal-status WAITING" id="signalText">LOADING...</div>
+          <div class="price-display">XAU/USD: <span id="priceText">0.00</span></div>
+        </div>
+
+        <!-- Indicator Stats Grid -->
+        <div class="grid-stats">
+          <div class="stat-card">
+            <div class="stat-label">RSI (24) [>50 Buy]</div>
+            <div class="stat-value" id="rsiVal">--</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">CCI (24) [>+100 Buy]</div>
+            <div class="stat-value" id="cciVal">--</div>
+          </div>
+        </div>
+
+        <!-- Copy Signal Button -->
+        <button class="copy-btn" onclick="copyTradeDetails()">
+          📋 COPY TRADING SIGNAL
+        </button>
+      </div>
+
+      <div class="footer-info">
+        <span>Masa Candle: <strong id="candleTime">--</strong></span>
+        <span>Kemaskini: <strong id="updateTime">--</strong></span>
+      </div>
+    </div>
+
+    <!-- Live Auto-Refresh Chart Widget -->
+    <div class="chart-container">
+      <div class="tradingview-widget-container" style="height:100%;width:100%">
+        <div id="tradingview_chart" style="height:100%;width:100%"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+        <script type="text/javascript">
+          new TradingView.widget({
+            "autosize": true,
+            "symbol": "OANDA:XAUUSD",
+            "interval": "60",
+            "timezone": "Asia/Kuala_Lumpur",
+            "theme": "dark",
+            "style": "1",
+            "locale": "ms",
+            "toolbar_bg": "#f1f3f6",
+            "enable_publishing": false,
+            "allow_symbol_change": false,
+            "container_id": "tradingview_chart",
+            "studies": [
+              "STD;RSI",
+              "STD;CCI"
+            ]
+          });
+        </script>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function fetchSignal() {
+      try {
+        const response = await fetch('/api/signal');
+        const data = await response.json();
+
+        const signalBox = document.getElementById('signalBox');
+        const signalText = document.getElementById('signalText');
+
+        // Update Text Data
+        document.getElementById('priceText').innerText = `$${data.price}`;
+        document.getElementById('rsiVal').innerText = data.rsi;
+        document.getElementById('cciVal').innerText = data.cci;
+        document.getElementById('candleTime').innerText = data.time || '-';
+        document.getElementById('updateTime').innerText = data.updatedAt || '-';
+
+        // Update Signal & Styling
+        signalText.innerText = data.signal;
+        signalText.className = `signal-status ${data.signal}`;
+        signalBox.className = `signal-box ${data.signal}`;
+
+      } catch (err) {
+        console.error('Error fetch data API:', err);
+      }
+    }
+
+    function copyTradeDetails() {
+      const symbol = "XAU/USD";
+      const signal = document.getElementById('signalText').innerText;
+      const price = document.getElementById('priceText').innerText;
+      const rsi = document.getElementById('rsiVal').innerText;
+      const cci = document.getElementById('cciVal').innerText;
+
+      if (signal === 'WAITING' || signal === 'LOADING...') {
+        alert('Tiada signal aktif untuk dicopy buat masa ini.');
+        return;
+      }
+
+      const copyText = `🚀 MATRIX PRO TRADER SIGNAL 🚀\nPair: ${symbol}\nSignal: ${signal}\nEntry Price: ${price}\nRSI(24): ${rsi}\nCCI(24): ${cci}`;
+
+      navigator.clipboard.writeText(copyText).then(() => {
+        alert('Signal berjaya dicopy ke clipboard!');
+      });
+    }
+
+    // Refresh status signal setiap 5 saat
+    fetchSignal();
+    setInterval(fetchSignal, 5000);
+  </script>
+</body>
+</html>
